@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://yoursite.com/"/>
-  <updated>2017-06-26T05:42:44.148Z</updated>
+  <updated>2017-06-26T05:43:56.440Z</updated>
   <id>http://yoursite.com/</id>
   
   <author>
@@ -20,7 +20,7 @@
     <link href="http://yoursite.com/2017/06/26/Design-an-API-rate-Limiter/"/>
     <id>http://yoursite.com/2017/06/26/Design-an-API-rate-Limiter/</id>
     <published>2017-06-26T05:09:58.000Z</published>
-    <updated>2017-06-26T05:42:44.148Z</updated>
+    <updated>2017-06-26T05:43:56.440Z</updated>
     
     <content type="html"><![CDATA[<p><a href="http://blog.gssxgss.me/not-a-simple-problem-rate-limiting/" target="_blank" rel="external">原帖</a><br>最近遇到一个场景，在每分钟错误计数达到250时发送消息。这里的每分钟并不是说整点的几分，有可能是现在16：16：16到16：17：16。<br>我了解到周围有人是用分钟的定时器来近似实现的，首先这样就限制了是整点的分秒，其次只限于对时间不敏感的场景，第三不能精确到秒，比如要求1次每秒的限制，因为定时器中任务执行很可能超过1s，而且还有并发的副作用。<br>那么直接在每次错误后向前扫描数量的笨方法呢？明显效率太低。</p>
 <p>个人对于这个问题进一步分析，认为这个属于请求速率限制问题，并且找到的合适的关键字rate limit之后去google。发现stackoverflow有关于这类问题的讨论。在阅读了诸多资料之后，自己了解到两种专门针对请求速率限制的算法：Leaky Bucket和Token Bucket。下面简单介绍一下两种算法。</p>
@@ -39,7 +39,7 @@
     
       <category term="Java" scheme="http://yoursite.com/tags/Java/"/>
     
-      <category term="Algorithm" scheme="http://yoursite.com/tags/Algorithm/"/>
+      <category term="pppppppppppp" scheme="http://yoursite.com/tags/pppppppppppp/"/>
     
   </entry>
   
