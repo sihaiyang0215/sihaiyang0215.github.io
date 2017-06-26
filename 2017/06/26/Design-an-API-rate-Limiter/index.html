@@ -1,12 +1,7 @@
 <!DOCTYPE html>
 <html lang="">
 <head>
-    <title>
-    Coderaft
-    
-        | Aloha
-    
-</title>
+    <title> Design an API rate Limiter(zz) · Coderaft </title>
     <meta charset="UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
@@ -139,10 +134,6 @@
         <main class="main" id="main">
             
     
-
-<section class="posts">
-    
-        
     <article class="post">
         <header class="post-header">
             <div class="post-time syuanpi riseIn-light back-1">
@@ -150,70 +141,51 @@
             </div>
             <h1 class="post-title syuanpi riseIn-light back-2">
             
-                <a href="/2017/06/26/Design-an-API-rate-Limiter/">Design an API rate Limiter(zz)</a>
+                Design an API rate Limiter(zz)
             
             </h1>
+            
+                
+                    <div class="post-tags syuanpi riseIn-light back-3">
+                    
+                        <a href="/tags/Java-Algorithm/">Java, Algorithm</a>
+                    
+                    </div>
+                
             
         </header>
         <div class="post-content syuanpi riseIn-light back-3">
             
-                
-                    <p><a href="http://blog.gssxgss.me/not-a-simple-problem-rate-limiting/" target="_blank" rel="external">原帖</a><br>最近遇到一个场景，在每分钟错误计数达到250时发送消息。这里的每分钟并不是说整点的几分，有可能是现在16：16：16到16：17：16。<br>我了解到周围有人是用分钟的定时器来近似实现的，首先这样就限制了是整点的分秒，其次只限于对时间不敏感的场景，第三不能精确到秒，比如要求1次每秒的限制，因为定时器中任务执行很可能超过1s，而且还有并发的副作用。<br>那么直接在每次错误后向前扫描数量的笨方法呢？明显效率太低。</p>
+                <p><a href="http://blog.gssxgss.me/not-a-simple-problem-rate-limiting/" target="_blank" rel="external">原帖</a><br>最近遇到一个场景，在每分钟错误计数达到250时发送消息。这里的每分钟并不是说整点的几分，有可能是现在16：16：16到16：17：16。<br>我了解到周围有人是用分钟的定时器来近似实现的，首先这样就限制了是整点的分秒，其次只限于对时间不敏感的场景，第三不能精确到秒，比如要求1次每秒的限制，因为定时器中任务执行很可能超过1s，而且还有并发的副作用。<br>那么直接在每次错误后向前扫描数量的笨方法呢？明显效率太低。</p>
 <p>个人对于这个问题进一步分析，认为这个属于请求速率限制问题，并且找到的合适的关键字rate limit之后去google。发现stackoverflow有关于这类问题的讨论。在阅读了诸多资料之后，自己了解到两种专门针对请求速率限制的算法：Leaky Bucket和Token Bucket。下面简单介绍一下两种算法。</p>
 <p>Leaky Bucket的思想是认为有一个会漏水的桶，水以恒定速率滴出，上方会有水滴（请求）进入水桶。显然，如果上方水滴进入速率超过水滴出的速率，那么水桶就会溢出，这里的溢出就是traffic shaping和traffic policing的条件，即执行某个过载任务的时候。</p>
 <p>Token Bucket的思想是同样有一个桶，令牌以恒定速率放入桶，桶内的令牌数有上限，每个请求会acquire一个令牌，如果某个请求来到而桶内没有令牌了，请说明这个请求是过载的。和Lecky Bucket不同的是，Token Bucket存在burst rate。比如当前令牌放入速率4个每秒，桶的令牌上限是8，第一秒内没有请求，第二秒实际就可以处理8个请求！虽然平均速率还是4个每秒，但是爆发速率是8个每秒。</p>
 <p>两个算法的实现上，Leaky Bucket还分meter和queue，meter看起来需要定时器辅助，queue不太符合我的需求。Token Bucket虽然有burst rate，但是只要调整为和rate一样就可以了，而且实现起来不需要定时器。<br>Token Bucket的实现原理是计算请求时间和上一次请求时间之间内增加的令牌数放入桶，比较桶内的令牌数是否足够用于请求，如果不够就认为过载，否则减去响应令牌，设置上一次请求时间为本次请求时间。注意下面的take方法实现，虽然只有不到十行，但准确地解决了请求速度限制问题。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">TokenBucket</span> </span>&#123;</div><div class="line"></div><div class="line">  <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">int</span> capacity;</div><div class="line">  <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">int</span> tokensPerSeconds;</div><div class="line">  <span class="keyword">private</span> <span class="keyword">int</span> tokens = <span class="number">0</span>;</div><div class="line">  <span class="keyword">private</span> <span class="keyword">long</span> timestamp = System.currentTimeMillis();</div><div class="line"></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="title">TokenBucket</span><span class="params">(<span class="keyword">int</span> tokensPerUnit, TimeUnit unit)</span> </span>&#123;</div><div class="line">    capacity = tokensPerSeconds = (<span class="keyword">int</span>) (tokensPerUnit / unit.toSeconds(<span class="number">1L</span>));</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">take</span><span class="params">()</span> </span>&#123;</div><div class="line">    <span class="keyword">long</span> now = System.currentTimeMillis();</div><div class="line">    tokens += (<span class="keyword">int</span>) ((now - timestamp) * tokensPerSeconds / <span class="number">1000</span>);</div><div class="line">    <span class="keyword">if</span> (tokens &gt; capacity) tokens = capacity;</div><div class="line">    timestamp = now;</div><div class="line">    <span class="keyword">if</span> (tokens &lt; <span class="number">1</span>) <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">    tokens--;</div><div class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</div><div class="line">  TokenBucket bucket = <span class="keyword">new</span> TokenBucket(<span class="number">250</span>, TimeUnit.MINUTES);</div><div class="line">  Thread.sleep(<span class="number">1000L</span>);</div><div class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++) &#123;</div><div class="line">    System.out.println(bucket.take());</div><div class="line">  &#125;</div><div class="line">  Thread.sleep(<span class="number">1000L</span>);</div><div class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++) &#123;</div><div class="line">    System.out.println(bucket.take());</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
 <p>运行上述程序的话可以看到4次允许，1次失败，4次允许，1次失败的样子，因为250/分约等于4/秒。<br>另外调整burst rate和rate的方式从之前的4个每秒的例子中隐约看到了，如果桶的大小等于每秒的令牌数的话，那么每秒的burst rate就是rate。TokenBucket的构造函数也是这么做的。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">true</div><div class="line">true</div><div class="line">true</div><div class="line">true</div><div class="line">false</div><div class="line">true</div><div class="line">true</div><div class="line">true</div><div class="line">true</div><div class="line">false</div></pre></td></tr></table></figure></p>
 
-                
             
         
         </div>
         
-    </article>
-    
-
-    
-        
-    <article class="post">
-        <header class="post-header">
-            <div class="post-time syuanpi riseIn-light back-1">
-                <span>Jun 14, 2017</span>
-            </div>
-            <h1 class="post-title syuanpi riseIn-light back-2">
             
-                <a href="/2017/06/14/hello-world/">Hello World</a>
             
-            </h1>
-            
-        </header>
-        <div class="post-content syuanpi riseIn-light back-3">
-            
-                
-                    <p>Welcome to <a href="https://hexo.io/" target="_blank" rel="external">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="external">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="external">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="external">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo new <span class="string">"My New Post"</span></div></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="external">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo server</div></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="external">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo generate</div></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="external">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo deploy</div></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="external">Deployment</a></p>
-
-                
-            
-        
-        </div>
         
     </article>
     
-
-    
-</section>
-    
-    <nav class="pagination">
-        <span class="page-number current">1</span>
+        
+    <nav class="article-page">
+        
+        
+            <a href="/2017/06/14/hello-world/" id="art-right" class="art-left">
+                <span class="prev-title"> 
+                    <i class="iconfont icon-left"></i>Hello World
+                </span>
+            </a>
+        
     </nav>
+
+        
+    
 
 
         </main>
@@ -277,6 +249,8 @@ $(document).ready(function(){
 })
 </script>
     </div>
+    
+        
     
     <div class="backtop syuanpi dead toTop" id="backtop">
     <i class="iconfont icon-up"></i>
